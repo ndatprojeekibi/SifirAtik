@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="13.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SifirAtik.Common\SifirAtik.Common.csproj" />
+    <ProjectReference Include="..\SifirAtik.Data\SifirAtik.Data.csproj" />
+    <ProjectReference Include="..\SifirAtik.Utils\SifirAtik.Utils.csproj" />
+  </ItemGroup>
+
+</Project>

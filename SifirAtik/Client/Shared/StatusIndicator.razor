@@ -1,0 +1,22 @@
+﻿@code {
+    [Parameter]
+    public ApproveType IsApproved { get; set; }
+
+    private string Color => IsApproved switch
+    {
+        ApproveType.NotChecked => "gray",
+        ApproveType.Denied => "red",
+        ApproveType.Accepted => "green",
+        _ => "gray"
+    };
+
+    private string StatusText => IsApproved switch
+    {
+        ApproveType.NotChecked => "Not Checked",
+        ApproveType.Denied => "Denied",
+        ApproveType.Accepted => "Accepted",
+        _ => "Unknown"
+    };
+}
+
+<div class="rounded-circle" style="width: 20px; height: 20px; background-color: @Color;" title="@StatusText"></div>

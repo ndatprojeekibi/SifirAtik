@@ -1,0 +1,74 @@
+﻿@inherits LayoutComponentBase
+@layout MainLayout
+
+@inject AuthenticationStateProvider AuthStateProvider
+
+<AuthorizeView>
+    <Authorized>
+        @if (isReady)
+        {
+            <h1>Marketplace</h1>
+
+            <div>
+                <p>Explore available items.</p>
+                <hr />
+                <div class="row">
+                    <div class="col-md-12">
+                        <MarketplaceNavMenu />
+                    </div>
+                    <div class="col-md-12">
+                        <hr />
+                    </div>
+                    <div class="col-md-12">
+                        <CascadingValue Value="userId">
+                            @Body
+                        </CascadingValue>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <p><em>Loading...</em></p>
+            <StatusMessage Message="@message" />
+        }
+    </Authorized>
+
+    <NotAuthorized>
+        <StatusMessage Message="@message" />
+        <Redirect NavigateTo="auth/login" />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private string? message;
+    private bool isReady;
+
+    private Guid userId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+
+        if (state.User.Identity != null && !state.User.Identity.IsAuthenticated)
+        {
+            message = "Error: You need to login first";
+            StateHasChanged();
+
+            return;
+        }
+
+        var id = state.User.FindFirst("UserId")?.Value;
+        userId = Guid.Parse(id);
+
+        if (userId == Guid.Empty)
+        {
+            message = "Error: You need to login first";
+            StateHasChanged();
+
+            return;
+        }
+
+        isReady = true;
+    }
+}

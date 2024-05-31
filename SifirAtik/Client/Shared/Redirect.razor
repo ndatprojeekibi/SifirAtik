@@ -1,0 +1,14 @@
+﻿<PageTitle>Redirecting...</PageTitle>
+<p><em>Redirecting...</em></p>
+
+@inject NavigationManager NavigationManager
+@code {
+    [Parameter]
+    public string NavigateTo { get; set; } = "/";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.Delay(1000);
+        NavigationManager.NavigateTo(NavigateTo);
+    }
+}

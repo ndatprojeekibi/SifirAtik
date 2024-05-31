@@ -1,0 +1,74 @@
+﻿@page "/marketplace/requests"
+@layout MarketplaceLayout
+
+@inject IItemService ItemService
+@inject IRequestService RequestService
+
+<div class="col-md-6">
+    <StatusMessage Message="@message" />
+</div>
+
+<div style="display: flex; align-items: center; margin-bottom: 16px">
+    <RadzenButton Click="@ClearSelection" Text="Clear Selection" />
+    @if (selectedItems?.Any() == true)
+    {
+        <div style="margin-left: 16px">
+            Selected Item: @selectedItems[0].Item.Name
+        </div>
+    }
+</div>
+
+<RadzenDataGrid AllowFiltering="true" FilterPopupRenderMode="PopupRenderMode.OnDemand"
+                FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                AllowPaging="true" PageSize="10"
+                AllowSorting="true" Data="@requests" ColumnWidth="200px"
+                SelectionMode="DataGridSelectionMode.Single" @bind-Value=selectedItems>
+    <Columns>
+        <RadzenDataGridColumn Property="RequestType" Title="Request Type" />
+        <RadzenDataGridColumn Property="Item.Name" Title="Name" />
+        <RadzenDataGridColumn Property="Item.Status" Title="Status" />
+        <RadzenDataGridColumn Property="Item.Description" Title="Description" Width="300px" />
+        <RadzenDataGridColumn Property="RequestLocation" Title="You want it on" />
+        <RadzenDataGridColumn Title="Approved">
+            <Template Context="data">
+                <StatusIndicator IsApproved="@data.IsApproved" />
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    private string? message;
+
+    [CascadingParameter]
+    public Guid userId { get; set; }
+
+    private IList<GetAdoptionRequestDto> requests { get; set; }
+    private IList<GetAdoptionRequestDto>? selectedItems;
+
+    void ClearSelection()
+    {
+        if (selectedItems != null)
+        {
+            selectedItems.Clear();
+            selectedItems = null;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await RequestService.GetUserAdoptionRequestsById(userId);
+
+        if (result.IsSuccess && result.Data != null)
+        {
+            var json = JsonSerializer.Serialize(result.Data);
+            requests = JsonSerializer.Deserialize<List<GetAdoptionRequestDto>>(json);
+        }
+
+        if (requests == null)
+        {
+            message = result.Message;
+            return;
+        }
+    }
+}

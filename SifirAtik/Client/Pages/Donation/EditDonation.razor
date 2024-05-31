@@ -1,0 +1,180 @@
+﻿@page "/donations/edit/{itemId}"
+@layout DonateLayout
+
+@inject IItemService ItemService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Edit Donation</PageTitle>
+<h3>Edit Donation</h3>
+
+<EditForm Model="Input" FormName="donation" OnValidSubmit="HandleSubmitAsync">
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <DataAnnotationsValidator />
+            <StatusMessage Message="@message" />
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Name" class="form-control" placeholder="Please enter the item name." />
+                <label for="name" class="form-label">Item Name</label>
+                @* <ValidationMessage For="() => Input.Name" class="text-danger" /> *@
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Description" class="form-control" placeholder="Please enter the item description." />
+                <label for="description" class="form-label">Description</label>
+                @* <ValidationMessage For="() => Input.Description" class="text-danger" /> *@
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Status" class="form-control" placeholder="Please enter the item status." />
+                <label for="status" class="form-label">Status</label>
+                @* <ValidationMessage For="() => Input.Status" class="text-danger" /> *@
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Location" class="form-control" placeholder="Please enter the item location." />
+                <label for="location" class="form-label">Location</label>
+                @* <ValidationMessage For="() => Input.Location" class="text-danger" /> *@
+            </div>
+            <button type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
+        </div>
+        <div class="col-md-4 col-md-offset-2">
+            <section>
+                <ValidationSummary class="text-danger" role="alert" />
+            </section>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter]
+    public string itemId { get; set; }
+
+    [CascadingParameter]
+    public Guid userId { get; set; }
+
+    private bool isReady;
+
+    private GetItemDto item;
+
+    private InputModel Input { get; set; } = new();
+    private string? message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Guid.TryParse(itemId, out Guid itemGuid))
+        {
+            message = "Error: Invalid item ID.";
+            StateHasChanged();
+
+            return;
+        }
+
+        if (userId == Guid.Empty)
+        {
+            NavigationManager.NavigateTo($"donations/edit/{itemId}", forceLoad: true);
+
+            return;
+        }
+
+        var result = await ItemService.GetByIdAsync(itemGuid);
+
+        if (!result.IsSuccess)
+        {
+            message = result.Message;
+            StateHasChanged();
+
+            return;
+        }
+
+        var json = JsonSerializer.Serialize(result.Data);
+        item = JsonSerializer.Deserialize<GetItemDto>(json);
+
+        MapToInput();
+    }
+
+    private async Task HandleSubmitAsync()
+    {
+        if (!Check())
+        {
+            message = "Error: Nothing changed.";
+            StateHasChanged();
+
+            return;
+        }
+
+        var itemGuid = Guid.Parse(itemId);
+        var dto = MapToDto(itemGuid);
+        var result = await ItemService.UpdateAsync(dto);
+
+        if (result.IsSuccess)
+        {
+            message = result.Message;
+            StateHasChanged();
+
+            await Task.Delay(500);
+            NavigationManager.NavigateTo("/donations", forceLoad: true);
+        }
+        else
+        {
+            message = result.Message;
+            StateHasChanged();
+        }
+    }
+
+    private bool Check()
+    {
+        bool isDifferent = false;
+
+        // Check if any of the fields are different
+        if (Input.Name.Trim() != item.Name ||
+            Input.Description.Trim() != item.Description ||
+            Input.Status.Trim() != item.Status ||
+            Input.Location.Trim() != item.DonationLocation)
+        {
+            isDifferent = true;
+        }
+
+        return isDifferent;
+    }
+
+    private void MapToInput()
+    {
+        Input.Name = item.Name;
+        Input.Description = item.Description;
+        Input.Status = item.Status;
+        Input.Location = item.DonationLocation;
+    }
+
+    private UpdateItemDto MapToDto(Guid itemGuid)
+    {
+        return new UpdateItemDto
+            {
+                Guid = itemGuid,
+                UpdatedById = userId,
+                Name = Input.Name,
+                Description = Input.Description,
+                Status = Input.Status,
+                DonationLocation = Input.Location
+            };
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 1)]
+        [Display(Name = "Item Name")]
+        public string? Name { get; set; }
+
+        [Required]
+        [StringLength(256, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 1)]
+        [Display(Name = "Description")]
+        public string? Description { get; set; }
+
+        [Required]
+        [StringLength(50, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 1)]
+        [Display(Name = "Status")]
+        public string? Status { get; set; }
+
+        [Required]
+        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 1)]
+        [Display(Name = "Location")]
+        public string? Location { get; set; }
+    }
+}

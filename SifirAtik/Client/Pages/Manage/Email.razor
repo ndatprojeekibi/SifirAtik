@@ -1,0 +1,111 @@
+﻿@page "/account/manage/email"
+@layout ManageLayout
+
+@inject IUserService UserService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Manage email</PageTitle>
+<h3 class="mb-3">Manage email</h3>
+
+<EditForm Model="Input" FormName="change-email" OnValidSubmit="HandleSubmitAsync" method="post">
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <DataAnnotationsValidator />
+            <StatusMessage Message="@message" />
+            <div class="form-floating mb-3 input-group">
+                <InputText @bind-Value="user.Email" class="form-control" placeholder="Please enter your email." disabled />
+                <div class="input-group-append">
+                    <span class="h-100 input-group-text text-success font-weight-bold">✓</span>
+                </div>
+                <label for="email" class="form-label">Email</label>
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Email" class="form-control" aria-required="true" placeholder="Please enter new email." />
+                <label for="new-email" class="form-label">New email</label>
+            </div>
+            <button type="submit" class="w-100 btn btn-lg btn-primary">Change email</button>
+        </div>
+        <div class="col-md-4 col-md-offset-2">
+            <section>
+                <ValidationSummary class="text-danger" role="alert" />
+            </section>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    [CascadingParameter]
+    private GetUserDto user { get; set; }
+
+    private InputModel Input { get; set; } = new();
+
+    private string? message;
+
+    protected override void OnInitialized()
+    {
+        MapToInput();
+    }
+
+    private async Task HandleSubmitAsync()
+    {
+        if (!Check())
+        {
+            message = "Error: Nothing changed.";
+            StateHasChanged();
+
+            return;
+        }
+
+        var dto = MapToDto();
+        var result = await UserService.UpdateEmailAsync(dto);
+
+        if (result.IsSuccess)
+        {
+            message = result.Message;
+            StateHasChanged();
+
+            await Task.Delay(500);
+            NavigationManager.NavigateTo("/account/manage", forceLoad: true);
+        }
+        else
+        {
+            message = result.Message;
+            StateHasChanged();
+        }
+    }
+
+    private bool Check()
+    {
+        bool isDifferent = false;
+
+        if (Input.Email.Trim() != user.Email)
+        {
+            isDifferent = true;
+        }
+
+        return isDifferent;
+    }
+
+    private void MapToInput()
+    {
+        Input.Email = user.Email;
+    }
+
+    private UpdateEmailDto MapToDto()
+    {
+        return new UpdateEmailDto
+            {
+                Guid = user.Guid,
+                UpdatedById = user.Guid,
+                Email = Input.Email.Trim()
+            };
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [EmailAddress]
+        [Display(Name = "New email")]
+        public string? Email { get; set; }
+    }
+}

@@ -1,0 +1,94 @@
+﻿@inherits LayoutComponentBase
+@layout MainLayout
+
+@inject IWarehouseService WarehouseService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<AuthorizeView Roles="Admin">
+    <Authorized>
+        @if (isReady)
+        {
+            <h1>Warehouses</h1>
+
+            <div>
+                <p>View your warehouses.</p>
+                <hr />
+                <div class="row">
+                    <div class="col-md-12">
+                        <WarehouseNavMenu />
+                    </div>
+                    <div class="col-md-12">
+                        <hr />
+                    </div>
+                    <div class="col-md-12">
+                        <CascadingValue Value="userId">
+                            <CascadingValue Value="warehouses">
+                                @Body
+                            </CascadingValue>
+                        </CascadingValue>
+                         
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <p><em>Loading...</em></p>
+            <StatusMessage Message="@message" />
+        }
+    </Authorized>
+
+    <NotAuthorized>
+        <StatusMessage Message="@message" />
+        <Redirect NavigateTo="auth/login" />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private string? message;
+    private bool isReady;
+
+    private Guid userId;
+    private IList<GetWarehouseDto> warehouses;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+
+        if (state.User.Identity != null && !state.User.Identity.IsAuthenticated)
+        {
+            message = "Error: You need to login first";
+            StateHasChanged();
+
+            return;
+        }
+
+        var id = state.User.FindFirst("UserId")?.Value;
+        userId = Guid.Parse(id);
+
+        if (userId == Guid.Empty)
+        {
+            message = "Error: You need to login first";
+            StateHasChanged();
+
+            return;
+        }
+
+        var result = await WarehouseService.GetAllAsync();
+
+        if (result.IsSuccess && result.Data != null)
+        {
+            var json = JsonSerializer.Serialize(result.Data);
+            warehouses = JsonSerializer.Deserialize<List<GetWarehouseDto>>(json);
+        }
+
+        if (warehouses == null)
+        {
+            message = result.Message;
+            return;
+        }
+
+        isReady = true;
+    }
+}

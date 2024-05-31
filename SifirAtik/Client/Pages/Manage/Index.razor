@@ -1,0 +1,138 @@
+﻿@page "/account/manage"
+@layout ManageLayout
+
+@inject IUserService UserService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Profile</PageTitle>
+<h3 class="mb-3">Profile</h3>
+
+<EditForm Model="Input" FormName="profile" OnValidSubmit="HandleSubmitAsync">
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <DataAnnotationsValidator />
+            <StatusMessage Message="@message" />
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.PhoneNumber" class="form-control" placeholder="Please enter your phone number." />
+                <label for="phone-number" class="form-label">Phone Number</label>
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Address" class="form-control" placeholder="Please enter your address." />
+                <label for="phone-number" class="form-label">Address</label>
+            </div>
+            <div class="rz-p-1 rz-text-align-left mb-3">
+                <RadzenStack>
+                    <RadzenLabel Text="Birthday" Component="DatePickerDateOnlyType" Style="vertical-align: middle;" />
+                    <RadzenDatePicker @bind-Value="Input.Birthday" Placeholder="@birthday" DateFormat="dd/MM/yyyy" Name="DatePickerDateOnlyType" />
+                </RadzenStack>
+            </div>
+            
+            <button type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
+        </div>
+        <div class="col-md-4 col-md-offset-2">
+            <section>
+                <ValidationSummary class="text-danger" role="alert" />
+            </section>
+        </div>
+    </div>
+</EditForm>
+
+
+@code {
+    [CascadingParameter]
+    private GetUserDto user { get; set; }
+
+    private InputModel Input { get; set; } = new();
+
+    private string? birthday;
+    private string? message;
+
+    protected override void OnInitialized()
+    {
+        if (user == null)
+        {
+            NavigationManager.NavigateTo("account/manage", forceLoad: true);
+        }
+
+        MapToInput();
+    }
+
+    private async Task HandleSubmitAsync()
+    {
+        if (!Check())
+        {
+            message = "Error: Nothing changed.";
+            StateHasChanged();
+
+            return;
+        }
+
+        var dto = MapToDto();
+        var result = await UserService.UpdateUserProfileAsync(dto);
+
+        if (result.IsSuccess)
+        {
+            message = result.Message;
+            StateHasChanged();
+
+            await Task.Delay(500);
+            NavigationManager.NavigateTo("/account/manage", forceLoad: true);
+        }
+        else
+        {
+            message = result.Message;
+            StateHasChanged();
+        }
+    }
+
+    private bool Check()
+    {
+        bool isDifferent = false;
+
+        // Check if any of the fields are different
+        if (Input.PhoneNumber.Trim() != user.PhoneNumber ||
+            Input.Address.Trim() != user.Address ||
+            Input.Birthday != user.Birthday)
+        {
+            isDifferent = true;
+        }
+
+        return isDifferent;
+    }
+
+    private void MapToInput()
+    {
+        Input.Address = user.Address;
+        Input.PhoneNumber = user.PhoneNumber;
+        Input.Birthday = user.Birthday;
+        birthday = user.Birthday.ToShortDateString();
+    }
+
+    private UpdateUserProfileDto MapToDto()
+    {
+        return new UpdateUserProfileDto
+            {
+                Guid = user.Guid,
+                UpdatedById = user.Guid,
+                Address = Input.Address.Trim(),
+                PhoneNumber = Input.PhoneNumber.Trim(),
+                Birthday = Input.Birthday
+            };
+    }
+
+    private sealed class InputModel
+    {
+        [Phone]
+        [Display(Name = "Phone Number")]
+        [StringLength(32, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 1)]
+        public string? PhoneNumber { get; set; }
+
+        [StringLength(256, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 1)]
+        [DataType(DataType.Text)]
+        [Display(Name = "Address")]
+        public string? Address { get; set; }
+
+        [Display(Name = "Birthday")]
+        public DateTime? Birthday { get; set; }
+    }
+}

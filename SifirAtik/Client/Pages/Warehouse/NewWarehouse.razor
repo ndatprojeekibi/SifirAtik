@@ -1,0 +1,99 @@
+﻿@page "/warehouses/new"
+
+@layout WarehouseLayout
+
+@inject IWarehouseService WarehouseService
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager NavigationManager
+
+<PageTitle>New warehouse</PageTitle>
+<h3 class="mb-3">New warehouse</h3>
+
+<EditForm Model="Input" FormName="donation" OnValidSubmit="HandleSubmitAsync">
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <DataAnnotationsValidator />
+            <StatusMessage Message="@message" />
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Name" class="form-control" placeholder="Please enter the warehouse name." />
+                <label for="name" class="form-label">Warehouse Name</label>
+                @* <ValidationMessage For="() => Input.Name" class="text-danger" /> *@
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Address" class="form-control" placeholder="Please enter the warehouse address." />
+                <label for="description" class="form-label">Warehouse Address</label>
+                @* <ValidationMessage For="() => Input.Description" class="text-danger" /> *@
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.PhoneNumber" class="form-control" placeholder="Please enter the warehouse phone number." />
+                <label for="status" class="form-label">Warehouse Phone Number</label>
+                @* <ValidationMessage For="() => Input.Status" class="text-danger" /> *@
+            </div>
+            <button type="submit" class="w-100 btn btn-lg btn-primary">Add</button>
+
+        </div>
+        <div class="col-md-4 col-md-offset-2">
+            <section>
+                <ValidationSummary class="text-danger" role="alert" />
+            </section>
+        </div>
+    </div>
+</EditForm>
+
+
+@code {
+    private InputModel Input { get; set; } = new();
+    private string? message;
+
+    private async Task HandleSubmitAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        var userId = Guid.Parse(state.User.FindFirst("UserId")?.Value);
+
+        var dto = MapToDto(userId);
+        var result = await WarehouseService.CreateAsync(dto);
+
+        if (!result.IsSuccess)
+        {
+            message = result.Message;
+            StateHasChanged();
+
+            return;
+        }
+
+        message = result.Message;
+        StateHasChanged();
+
+        await Task.Delay(500);
+        NavigationManager.NavigateTo("/warehouses", forceLoad: true);
+    }
+
+    private CreateWarehouseDto MapToDto(Guid userId)
+    {
+        return new CreateWarehouseDto
+            {
+                CreatedById = userId,
+                Name = Input.Name,
+                Address = Input.Address,
+                PhoneNumber = Input.PhoneNumber,
+            };
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 1)]
+        [Display(Name = "Item Name")]
+        public string? Name { get; set; }
+
+        [Required]
+        [StringLength(256, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 1)]
+        [Display(Name = "Address")]
+        public string? Address { get; set; }
+
+        [Required]
+        [StringLength(32, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 1)]
+        [Display(Name = "PhoneNumber")]
+        public string? PhoneNumber { get; set; }
+    }
+}

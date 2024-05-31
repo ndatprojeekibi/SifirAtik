@@ -1,0 +1,120 @@
+﻿@page "/auth/register"
+
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+
+<PageTitle> Register </PageTitle>
+<h1> Register </h1>
+
+<p>Create a new account.</p>
+<hr />
+
+<EditForm Model="Input" OnValidSubmit="HandleSubmit">
+    <div class="row">
+        <div class="col-md-6">
+            <StatusMessage Message="@message" />
+            <DataAnnotationsValidator />
+            @* <ValidationSummary class="text-danger" role="alert" /> *@
+            <div class="form-floating mb-3">
+                <InputText id="name" @bind-Value="Input.Name" class="form-control" autocomplete="name" autocompletetype="FirstName" aria-required="true" placeholder="name"></InputText>
+                <label for="name">Name</label>
+                @* <ValidationMessage For="() => Input.Name" class="text-danger" /> *@
+            </div>
+            <div class="form-floating mb-3">
+                <InputText id="surname" @bind-Value="Input.Surname" class="form-control" autocomplete="surname" autocompletetype="LastName" aria-required="true" placeholder="surname"></InputText>
+                <label for="surname"> Surname </label>
+                @* <ValidationMessage For="() => Input.Surname" class="text-danger" /> *@
+            </div>
+            <div class="form-floating mb-3">
+                <InputText id="email" @bind-Value="Input.Email" class="form-control" autocomplete="email" autocompletetype="Email" aria-required="true" placeholder="name@example.com"></InputText>
+                <label for="email"> Email </label>
+                @* <ValidationMessage For="() => Input.Email" class="text-danger" /> *@
+            </div>
+            <div class="form-floating mb-3">
+                <InputText type="password" id="password" @bind-Value="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
+                <label for="password"> Password </label>
+                @* <ValidationMessage For="() => Input.Password" class="text-danger" /> *@
+            </div>
+            <div class="form-floating mb-3">
+                <InputText type="password" id="confirmPassword" @bind-Value="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
+                <label for="confirmPassword"> Confirm Password </label>
+                @* <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" /> *@
+            </div>
+            
+            <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
+        </div>
+        <div class="col-md-4 col-md-offset-2">
+            <section>
+                <ValidationSummary class="text-danger" role="alert" />
+            </section>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    private string? message;
+
+    private InputModel Input { get; set; } = new();
+
+    private async Task HandleSubmit()
+    {
+        var dto = MapToRegisterUserDto();
+        var result = await AuthService.RegisterAsync(dto);
+
+        if (!result.IsSuccess)
+        {
+            message = result.Message;
+        }
+        else
+        {
+            message = result.Message;
+            StateHasChanged();
+
+            await Task.Delay(500);
+            NavigationManager.NavigateTo("auth/login");
+        }
+    }
+
+    private RegisterUserDto MapToRegisterUserDto()
+    {
+        return new RegisterUserDto
+            {
+                Name = Input.Name.Trim(),
+                Surname = Input.Surname.Trim(),
+                Email = Input.Email.Trim(),
+                Password = Input.Password.Trim(),
+            };
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [StringLength(25, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 1)]
+        [DataType(DataType.Text)]
+        [Display(Name = "Name")]
+        public string Name { get; set; } = "";
+
+        [Required]
+        [StringLength(25, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 1)]
+        [DataType(DataType.Text)]
+        [Display(Name = "Surname")]
+        public string Surname { get; set; } = "";
+
+        [Required]
+        [EmailAddress]
+        [Display(Name = "Email")]
+        public string Email { get; set; } = "";
+
+        [Required]
+        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 8)]
+        [DataType(DataType.Password)]
+        [Display(Name = "Password")]
+        public string Password { get; set; } = "";
+
+        [DataType(DataType.Password)]
+        [Display(Name = "Confirm password")]
+        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+        public string ConfirmPassword { get; set; } = "";
+    }
+}

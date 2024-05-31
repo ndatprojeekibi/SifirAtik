@@ -1,0 +1,98 @@
+﻿@inherits LayoutComponentBase
+@layout MainLayout
+
+@inject IUserService UserService
+@inject IItemService ItemService
+@inject IRequestService RequestService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<AuthorizeView>
+    <Authorized>
+        @if (isReady)
+        {
+            <h1>Donations</h1>
+
+            <div>
+                <p>See your contributions, or contribute more.</p>
+                <hr />
+                <div class="row">
+                    <div class="col-md-12">
+                        <DonateNavMenu />
+                    </div>
+                    <div class="col-md-12">
+                        <hr />
+                    </div>
+                    <div class="col-md-12">
+                        <CascadingValue Value="userId">
+                            <CascadingValue Value="@requests">
+                                @Body
+                            </CascadingValue>
+                        </CascadingValue>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <p><em>Loading...</em></p>
+            <StatusMessage Message="@message" />
+        }
+    </Authorized>
+
+    <NotAuthorized>
+        <StatusMessage Message="@message" />
+        <Redirect NavigateTo="auth/login" />
+    </NotAuthorized>
+</AuthorizeView>
+
+
+@code {
+    private string? message;
+    private bool isReady;
+
+    private Guid userId;
+    private IList<GetItemDto> items;
+
+    private IList<GetDonationRequestDto> requests;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+
+        if (state.User.Identity != null && !state.User.Identity.IsAuthenticated)
+        {
+            message = "Error: You need to login first";
+            StateHasChanged();
+
+            return;
+        }
+
+        var id = state.User.FindFirst("UserId")?.Value;
+        userId = Guid.Parse(id);
+
+        if (userId == Guid.Empty)
+        {
+            message = "Error: You need to login first";
+            StateHasChanged();
+
+            return;
+        }
+
+        var result = await RequestService.GetUserDonationRequestsById(userId);
+
+        if (result.IsSuccess && result.Data != null)
+        {
+            var json = JsonSerializer.Serialize(result.Data);
+            requests = JsonSerializer.Deserialize<List<GetDonationRequestDto>>(json);
+        }
+
+        if (requests == null)
+        {
+            message = result.Message;
+            return;
+        }
+
+        isReady = true;
+    }
+}

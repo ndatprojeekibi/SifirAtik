@@ -1,0 +1,93 @@
+﻿@page "/marketplace"
+@layout MarketplaceLayout
+
+@inject NavigationManager NavigationManager
+@inject IItemService ItemService
+
+<div class="col-md-6">
+    <StatusMessage Message="@message" />
+</div>
+
+@if(items == null)
+{
+    <p><em>Loading...</em></p>
+    <StatusMessage Message="@message" />
+}
+else
+{
+    <div style="display: flex; align-items: center; margin-bottom: 16px">
+        <RadzenButton Click="@ClearSelection" Text="Clear Selection" />
+        @if (selectedItems?.Any() == true)
+        {
+            <div style="margin-left: 16px">
+                Selected Item: @selectedItems[0].Name
+            </div>
+        }
+
+        @if (selectedItems == null)
+        {
+            <RadzenButton Click="@MakeRequest" Text="Request" style="margin-left: auto" Disabled=true />
+        }
+        else
+        {
+            <RadzenButton Click="@MakeRequest" Text="Request" style="margin-left: auto" />
+        }
+    </div>
+
+    <RadzenDataGrid AllowFiltering="true" FilterPopupRenderMode="PopupRenderMode.OnDemand"
+                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                    AllowPaging="true" PageSize="10"
+                    AllowSorting="true" Data="@items" ColumnWidth="200px"
+                    SelectionMode="DataGridSelectionMode.Single" @bind-Value=selectedItems>
+        <Columns>
+            <RadzenDataGridColumn Property="Name" Title="Name" />
+            <RadzenDataGridColumn Property="Status" Title="Status" />
+            <RadzenDataGridColumn Property="Description" Title="Description" Width="300px" />
+        </Columns>
+    </RadzenDataGrid>
+}
+
+@code {
+    private string? message;
+
+    [CascadingParameter]
+    public Guid userId { get; set; }
+
+    private IList<MarketItemDto> items { get; set; }
+    private IList<MarketItemDto>? selectedItems;
+
+    void ClearSelection()
+    {
+        if (selectedItems != null)
+        {
+            selectedItems.Clear();
+            selectedItems = null;
+        }
+    }
+
+    void MakeRequest()
+    {
+        StateHasChanged();
+        if (selectedItems != null)
+        {
+            NavigationManager.NavigateTo($"marketplace/newrequest/{selectedItems[0].Guid}");
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await ItemService.GetMarketplace();
+
+        if (result.IsSuccess && result.Data != null)
+        {
+            var json = JsonSerializer.Serialize(result.Data);
+            items = JsonSerializer.Deserialize<List<MarketItemDto>>(json);
+        }
+
+        if (items == null)
+        {
+            message = result.Message;
+            return;
+        }
+    }
+}

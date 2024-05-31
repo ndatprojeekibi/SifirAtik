@@ -1,0 +1,171 @@
+﻿@page "/marketplace/newrequest/{itemId}"
+
+@layout MarketplaceLayout
+
+@inject IUserService UserService
+@inject IItemService ItemService
+@inject IRequestService RequestService
+@inject NavigationManager NavigationManager
+
+<h3 class="mb-3">Create request</h3>
+
+<EditForm Model="Input" FormName="donation" OnValidSubmit="HandleSubmitAsync">
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <DataAnnotationsValidator />
+            <StatusMessage Message="@message" />
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Name" class="form-control" readonly />
+                <label for="name" class="form-label">Item Name</label>
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Description" class="form-control" readonly />
+                <label for="description" class="form-label">Description</label>
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Status" class="form-control" readonly />
+                <label for="status" class="form-label">Status</label>
+            </div>
+            <div class="form-floating">
+                <InputText @bind-Value="Input.Location" class="form-control" placeholder="Please enter request location." />
+                <label for="location" class="form-label">Where do you want it?</label>
+                @* <ValidationMessage For="() => Input.Location" class="text-danger" /> *@
+            </div>
+            <p>
+                <a style="color:blue; text-decoration:underline; cursor:pointer" @onclick="GetAddress">Do you want to use your address?</a>
+            </p>
+            <button type="submit" class="w-100 btn btn-lg btn-primary">Request</button>
+        </div>
+        <div class="col-md-4 col-md-offset-2">
+            <section>
+                <ValidationSummary class="text-danger" role="alert" />
+            </section>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter]
+    public string itemId { get; set; }
+
+    [CascadingParameter]
+    public Guid userId { get; set; }
+
+    private MarketItemDto item;
+    private GetUserDto user;
+
+    private InputModel Input { get; set; } = new();
+    private string? message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Guid.TryParse(itemId, out Guid itemGuid))
+        {
+            message = "Error: Invalid item ID.";
+            StateHasChanged();
+
+            return;
+        }
+
+        var result = await ItemService.GetMarketplaceItem(itemGuid);
+
+        if (!result.IsSuccess)
+        {
+            message = result.Message;
+            StateHasChanged();
+
+            return;
+        }
+
+        var json = JsonSerializer.Serialize(result.Data);
+        item = JsonSerializer.Deserialize<MarketItemDto>(json);
+
+        MapToInput();
+    }
+
+    private void MapToInput()
+    {
+        Input.Name = item.Name;
+        Input.Description = item.Description;
+        Input.Status = item.Status;
+    }
+
+    private async Task HandleSubmitAsync()
+    {
+        var request = new CreateRequestDto
+            {
+                CreatedById = userId,
+                RequestLocation = Input.Location,
+                RequestType = RequestType.Adoption,
+                ItemId = Guid.Parse(itemId)
+            };
+
+        var result = await RequestService.CreateAsync(request);
+
+        if (!result.IsSuccess)
+        {
+            message = result.Message;
+            StateHasChanged();
+
+            return;
+        }
+
+        message = result.Message;
+        StateHasChanged();
+
+        await Task.Delay(500);
+        NavigationManager.NavigateTo("/marketplace/requests", forceLoad: true);
+    }
+
+    private async Task GetAddress()
+    {
+        var result = await UserService.GetByIdAsync(userId);
+
+        if (result.IsSuccess && result.Data != null)
+        {
+            var json = JsonSerializer.Serialize(result.Data);
+            user = JsonSerializer.Deserialize<GetUserDto>(json);
+        }
+
+        if (user == null)
+        {
+            message = "Error: User not found.";
+            StateHasChanged();
+
+            return;
+        }
+
+        if(user.Address == string.Empty)
+        {
+            message = "Error: Your address is empty. Manage your settings.";
+            StateHasChanged();
+
+            return;
+        }
+
+        Input.Location = user.Address;
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 1)]
+        [Display(Name = "Item Name")]
+        public string? Name { get; set; }
+
+        [Required]
+        [StringLength(256, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 1)]
+        [Display(Name = "Description")]
+        public string? Description { get; set; }
+
+        [Required]
+        [StringLength(50, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 1)]
+        [Display(Name = "Status")]
+        public string? Status { get; set; }
+
+        [Required]
+        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 1)]
+        [Display(Name = "Location")]
+        public string? Location { get; set; }
+    }
+}

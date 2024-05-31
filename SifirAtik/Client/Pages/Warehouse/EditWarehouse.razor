@@ -1,0 +1,138 @@
+﻿@page "/warehouses/edit/{guid}"
+@layout WarehouseLayout
+
+@inject IWarehouseService WarehouseService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Edit Warehouse</PageTitle>
+<h3>Edit Warehouse</h3>
+
+<div class="row">
+    <div class="col-md-6">
+        <EditForm Model="Input" FormName="warehouse" OnValidSubmit="HandleSubmitAsync">
+            <DataAnnotationsValidator />
+            <StatusMessage Message="@message" />
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Name" class="form-control" placeholder="Please enter the warehouse name." />
+                <label for="name" class="form-label">Warehouse Name</label>
+                <ValidationMessage For="() => Input.Name" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Address" class="form-control" placeholder="Please enter the warehouse address." />
+                <label for="address" class="form-label">Warehouse Address</label>
+                <ValidationMessage For="() => Input.Address" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.PhoneNumber" class="form-control" placeholder="Please enter the warehouse phone number." />
+                <label for="phoneNumber" class="form-label">Warehouse Phone Number</label>
+                <ValidationMessage For="() => Input.PhoneNumber" class="text-danger" />
+            </div>
+            <button type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string guid { get; set; }
+
+    [CascadingParameter]
+    public Guid userId { get; set; }
+
+    private GetWarehouseDto warehouse;
+
+    private InputModel Input { get; set; } = new();
+    private string? message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var warehouseGuid = Guid.Parse(guid);
+        var result = await WarehouseService.GetByIdAsync(warehouseGuid);
+
+        if (!result.IsSuccess)
+        {
+            message = result.Message;
+            StateHasChanged();
+
+            return;
+        }
+
+        var json = JsonSerializer.Serialize(result.Data);
+        warehouse = JsonSerializer.Deserialize<GetWarehouseDto>(json);
+
+        MapToInput();
+    }
+
+    private async Task HandleSubmitAsync()
+    {
+        if (!Check())
+        {
+            message = "Error: Nothing changed.";
+            StateHasChanged();
+
+            return;
+        }
+
+        var warehouseGuid = Guid.Parse(guid);
+        var dto = MapToDto(warehouseGuid);
+        var result = await WarehouseService.UpdateAsync(dto);
+
+        if (result.IsSuccess)
+        {
+            message = result.Message;
+            StateHasChanged();
+
+            await Task.Delay(500);
+            NavigationManager.NavigateTo("/warehouses", forceLoad: true);
+        }
+        else
+        {
+            message = result.Message;
+            StateHasChanged();
+        }
+    }
+
+    private bool Check()
+    {
+        return Input.Name.Trim() != warehouse.Name ||
+               Input.Address.Trim() != warehouse.Address ||
+               Input.PhoneNumber.Trim() != warehouse.PhoneNumber;
+    }
+
+    private void MapToInput()
+    {
+        Input.Name = warehouse.Name;
+        Input.Address = warehouse.Address;
+        Input.PhoneNumber = warehouse.PhoneNumber;
+    }
+
+    private UpdateWarehouseDto MapToDto(Guid warehouseGuid)
+    {
+        return new UpdateWarehouseDto
+            {
+                Guid = warehouseGuid,
+                UpdatedById = userId,
+                Name = Input.Name,
+                Address = Input.Address,
+                PhoneNumber = Input.PhoneNumber
+            };
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 1)]
+        [Display(Name = "Warehouse Name")]
+        public string? Name { get; set; }
+
+        [Required]
+        [StringLength(256, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 1)]
+        [Display(Name = "Address")]
+        public string? Address { get; set; }
+
+        [Required]
+        [StringLength(32, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 1)]
+        [Display(Name = "Phone Number")]
+        public string? PhoneNumber { get; set; }
+    }
+}

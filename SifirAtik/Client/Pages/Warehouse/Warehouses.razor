@@ -1,0 +1,71 @@
+﻿@page "/warehouses"
+@layout WarehouseLayout
+
+@inject IWarehouseService WarehouseService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Warehouses</PageTitle>
+
+<div style="display: flex; align-items: center; margin-bottom: 16px">
+    <RadzenButton Click="@ClearSelection" Text="Clear Selection" />
+    @if (selectedItems?.Any() == true)
+    {
+        <div style="margin-left: 16px">
+            Selected Item: @selectedItems[0].Name
+        </div>
+    }
+
+    @if (selectedItems == null)
+    {
+        <RadzenButton Click="@EditItem" Text="Edit" style="margin-left: auto" Disabled=true />
+    }
+    else
+    {
+        <RadzenButton Click="@EditItem" Text="Edit" style="margin-left: auto" />
+    }
+</div>
+
+<RadzenDataGrid AllowFiltering="true" FilterPopupRenderMode="PopupRenderMode.OnDemand"
+                FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                AllowPaging="true" PageSize="10"
+                AllowSorting="true" Data="@warehouses" ColumnWidth="200px"
+                SelectionMode="DataGridSelectionMode.Single" @bind-Value=selectedItems>
+    <Columns>
+        <RadzenDataGridColumn Property="Name" Title="Name" />
+        <RadzenDataGridColumn Property="Address" Title="Address" Width="300px" />
+        <RadzenDataGridColumn Property="PhoneNumber" Title="Phone Number" />
+
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    private string? message;
+
+    [CascadingParameter]
+    private IList<GetWarehouseDto> warehouses { get; set; }
+
+    private IList<GetWarehouseDto>? selectedItems;
+
+    void ClearSelection()
+    {
+        if (selectedItems != null)
+        {
+            selectedItems.Clear();
+            selectedItems = null;
+        }
+    }
+
+    void EditItem()
+    {
+        StateHasChanged();
+        if (selectedItems != null)
+        {
+            NavigationManager.NavigateTo($"warehouses/edit/{selectedItems[0].Guid}");
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+
+    }
+}

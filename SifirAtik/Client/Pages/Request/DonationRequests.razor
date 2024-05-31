@@ -1,0 +1,167 @@
+﻿@page "/managerequests/donation"
+@layout ManageRequestLayout
+
+@inject IRequestService RequestService
+@inject IWarehouseService WarehouseService
+@inject IItemService ItemService
+@inject NavigationManager NavigationManager
+
+<div class="col-md-6 mb-3">
+    <StatusMessage Message="@message" />
+</div>
+
+<div style="display: flex; align-items: center; margin-bottom: 16px">
+    <RadzenButton Click="@ClearSelection" Text="Clear Selection" />
+    @if (selectedItems?.Any() == true)
+    {
+        <div style="margin-left: 16px">
+            Selected Item: @selectedItems[0].Item.Name
+        </div>
+    }
+
+    @if (selectedItems == null || selectedItems[0].IsApproved != ApproveType.NotChecked)
+    {
+        <RadzenButton Click="@Accept" Text="Accept" style="margin-left: auto; background-color: green; color: white;" Disabled=true />
+        <RadzenButton Click="@Deny" Text="Deny" style="margin-left: 10px; background-color: red; color: white;" Disabled=true />
+    }
+    else
+    {
+        <div class="rz-text-align-center" style="margin-left: auto">
+            <RadzenLabel Text="Select Warehouse" Component="DropDownBindValue" Style="margin-right: 8px;" />
+            <RadzenDropDown @bind-Value=value Data=@warehouses TextProperty="Name" ValueProperty="Name" Name="DropDownBindValue" />
+        </div>
+        <RadzenButton Click="@Accept" Text="Accept" style="margin-left: 10px; background-color: green; color: white;" />
+        <RadzenButton Click="@Deny" Text="Deny" style="margin-left: 10px; background-color: red; color: white;" />
+    }
+</div>
+
+<RadzenDataGrid AllowFiltering="true" FilterPopupRenderMode="PopupRenderMode.OnDemand"
+                FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                AllowPaging="true" PageSize="10"
+                AllowSorting="true" Data="@requests" ColumnWidth="200px"
+                SelectionMode="DataGridSelectionMode.Single" @bind-Value=selectedItems>
+    <Columns>
+        <RadzenDataGridColumn Property="RequestType" Title="Request Type" />
+        <RadzenDataGridColumn Property="CreatedByName" Title="Requested By" />
+        <RadzenDataGridColumn Property="CreatedAt" Title="Requested At" />
+        <RadzenDataGridColumn Property="Item.Name" Title="Name" />
+        <RadzenDataGridColumn Property="Item.Status" Title="Status" />
+        <RadzenDataGridColumn Property="Item.Description" Title="Description" />
+        <RadzenDataGridColumn Property="Item.DonationLocation" Title="Location" />
+        <RadzenDataGridColumn Title="Approved">
+            <Template Context="data">
+                <StatusIndicator IsApproved="@data.IsApproved" />
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    [CascadingParameter]
+    public Guid userId { get; set; }
+
+    private string? message;
+
+    private IList<GetDonationRequestDto> requests;
+    private IList<GetDonationRequestDto>? selectedItems;
+
+    string value = "Select a warehouse";
+    private IList<GetWarehouseNamesDto>? warehouses;
+
+    void ClearSelection()
+    {
+        if (selectedItems != null)
+        {
+            selectedItems.Clear();
+            selectedItems = null;
+        }
+    }
+
+    async Task Accept()
+    {
+        if (value == "Select a warehouse")
+        {
+            message = "Error: Select a warehouse.";
+            StateHasChanged();
+
+            return;
+        }
+
+        if (selectedItems != null)
+        {
+            var updateRequest = new UpdateRequestDto
+                {
+                    Guid = selectedItems[0].Guid,
+                    UpdatedById = userId,
+                    IsApproved = ApproveType.Accepted
+                };
+
+
+            var result = await RequestService.UpdateAsync(updateRequest);
+
+            if(!result.IsSuccess)
+            {
+                message = result.Message;
+                StateHasChanged();
+
+                return;
+            }
+
+            var updateItem = new AcceptDonatedItemDto
+                {
+                    Guid = selectedItems[0].Item.Guid,
+                    UpdatedById = userId,
+                    IsDonated = true,
+                    StoredAtId = warehouses.FirstOrDefault(w => w.Name == value).Guid
+                };
+
+            result = await ItemService.AcceptDonatedItem(updateItem);
+
+            if (!result.IsSuccess)
+            {
+                message = result.Message;
+                StateHasChanged();
+
+                return;
+            }
+
+            await OnInitializedAsync();
+        }
+    }
+
+    void Deny()
+    {
+        // Will be implemented..
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await RequestService.GetAllDonationRequestsAsync();
+
+        if (result.IsSuccess && result.Data != null)
+        {
+            var json = JsonSerializer.Serialize(result.Data);
+            requests = JsonSerializer.Deserialize<List<GetDonationRequestDto>>(json);
+        }
+
+        if (requests == null)
+        {
+            message = result.Message;
+            return;
+        }
+
+        result = await WarehouseService.GetNames();
+
+        if (result.IsSuccess && result.Data != null)
+        {
+            var json = JsonSerializer.Serialize(result.Data);
+            warehouses = JsonSerializer.Deserialize<List<GetWarehouseNamesDto>>(json);
+        }
+
+        if (requests == null)
+        {
+            message = result.Message;
+            return;
+        }
+    }
+}

@@ -1,0 +1,106 @@
+﻿@page "/auth/login"
+
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle> Login </PageTitle>
+<h1> Login </h1>
+
+<p>Login into your account.</p>
+<hr />
+
+<EditForm Model="Input" OnValidSubmit="HandleSubmit">
+    <div class="row">
+        <div class="col-md-6">
+            <StatusMessage Message="@message" />
+            <DataAnnotationsValidator />
+            <div class="form-floating mb-3">
+                <InputText id="email" @bind-Value="Input.Email" class="form-control" autocomplete="email" autocompletetype="Email" aria-required="true" placeholder="name@example.com" />
+                <label for="email" class="form-label"> Email </label>
+            </div>
+            <div class="form-floating mb-3">
+                <InputText type="password" id="password" @bind-Value="Input.Password" class="form-control" autocomplete="password" autocompletetype="Password" aria-required="true" placeholder="password" />
+                <label for="password" class="form-label"> Password </label>
+            </div>
+            <div class="mb-3">
+                <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
+            </div>
+            <div>
+                <p>
+                    <a href="auth/forgot">Forgot your password?</a>
+                </p>
+                <p>
+                    <a href="auth/register">Register as a new user</a>
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4 col-md-offset-2">
+            <section>
+                <ValidationSummary class="text-danger" role="alert" />
+            </section>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    private string? message;
+
+    private InputModel Input { get; set; } = new();
+
+    private async Task HandleSubmit()
+    {
+        var dto = MapToLoginUserDto();
+        var result = await AuthService.LoginAsync(dto);
+
+        if (!result.IsSuccess)
+        {
+            message = result.Message;
+        }
+        else
+        {
+            message = result.Message;
+            StateHasChanged();
+
+            await AuthStateProvider.GetAuthenticationStateAsync();
+
+            await Task.Delay(500);
+            NavigationManager.NavigateTo("/");
+        }
+    }
+
+    private LoginUserDto MapToLoginUserDto()
+    {
+        return new LoginUserDto
+            {
+                Email = Input.Email,
+                Password = Input.Password,
+            };
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+
+        if (state.User.Identity != null && state.User.Identity.IsAuthenticated)
+        {
+            NavigationManager.NavigateTo("/");
+
+            return;
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [EmailAddress]
+        [Display(Name = "Email")]
+        public string Email { get; set; } = "";
+
+        [Required]
+        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 8)]
+        [DataType(DataType.Password)]
+        [Display(Name = "Password")]
+        public string Password { get; set; } = "";
+    }
+}

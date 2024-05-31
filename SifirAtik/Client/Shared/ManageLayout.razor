@@ -1,0 +1,91 @@
+﻿@inherits LayoutComponentBase
+@layout MainLayout
+
+@inject IUserService UserService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<AuthorizeView>
+    <Authorized>
+        @if (isReady)
+        {
+            <h1>Manage your account</h1>
+
+            <div>
+                <p>Change your account settings.</p>
+                <hr />
+                <div class="column">
+                    <div class="col-md-12">
+                        <ManageNavMenu />
+                    </div>
+                    <div class="col-md-12">
+                        <hr />
+                    </div>
+                    <div class="col-md-12">
+                        <CascadingValue Value="@user">
+                            @Body
+                        </CascadingValue>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <p>Loading...</p>
+            <StatusMessage Message="@message" />
+        }
+    </Authorized>
+
+    <NotAuthorized>
+        <StatusMessage Message="@message" />
+        <Redirect NavigateTo="auth/login" />
+    </NotAuthorized>
+
+</AuthorizeView>
+
+
+@code {
+    private string? message;
+    private bool isReady;
+
+    private GetUserDto user;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+
+        if (state.User.Identity != null && !state.User.Identity.IsAuthenticated)
+        {
+            message = "Error: You need to login first";
+            StateHasChanged();
+
+            return;
+        }
+
+        var id = state.User.FindFirst("UserId")?.Value;
+
+        if (id == null)
+        {
+            message = "Error: You need to login first";
+            StateHasChanged();
+
+            return;
+        }
+
+        var result = await UserService.GetByIdAsync(Guid.Parse(id));
+
+        if (result.IsSuccess && result.Data != null)
+        {
+            var json = JsonSerializer.Serialize(result.Data);
+            user = JsonSerializer.Deserialize<GetUserDto>(json);
+        }
+
+        if (user == null)
+        {
+            message = "Error: User not found.";
+            return;
+        }
+
+        isReady = true;
+    }
+}

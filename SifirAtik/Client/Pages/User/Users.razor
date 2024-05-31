@@ -1,0 +1,95 @@
+﻿@page "/users"
+
+@inject IUserService UserService
+@inject HttpClient Http
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Users</PageTitle>
+
+<AuthorizeView Roles="Root">
+    <Authorized>
+        @* @context.User.FindFirst("Name")?.Value *@
+        <h1>Users</h1>
+
+        <p>This component demonstrates fetching data from the server.</p>
+        <hr />
+
+        @if (users == null)
+        {
+            <p><em>Loading...</em></p>
+        }
+        else
+        {
+            <div style="display: flex; align-items: center; margin-bottom: 16px">
+                <RadzenButton Click="@ClearSelection" Text="Clear Selection" />
+                @if (selectedUsers?.Any() == true)
+                {
+                    <div style="margin-left: 16px">
+                        Selected User: @selectedUsers[0].Name
+                    </div>
+                }
+            </div>
+
+            <RadzenDataGrid AllowFiltering="true" FilterPopupRenderMode="PopupRenderMode.OnDemand"
+                            FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                            AllowPaging="true" PageSize="10"
+                            AllowSorting="true" Data="@users" ColumnWidth="200px"
+                            SelectionMode="DataGridSelectionMode.Single" @bind-Value=@selectedUsers>
+                <Columns>
+                    <RadzenDataGridColumn Property="Photo" Title="User" Sortable="false" Filterable="false">
+                        <Template Context="data">
+                            @data.Name @data.Surname
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn Property="Email" Title="Email" />
+                    <RadzenDataGridColumn Property="Birthday" Title="Birthday">
+                        <Template Context="data">
+                            @data.Birthday.ToString("dd/MM/yyyy")
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn Property="Address" Title="Address" />
+                    <RadzenDataGridColumn Property="PhoneNumber" Title="Phone Number" />
+                </Columns>
+            </RadzenDataGrid>
+        }
+    </Authorized>
+
+    <NotAuthorized>
+        <StatusMessage Message="@message" />
+        <Redirect NavigateTo="auth/login" />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private string? message;
+
+    private IList<GetUserDto>? users;
+    private IList<GetUserDto>? selectedUsers;
+
+    void ClearSelection()
+    {
+        selectedUsers = null;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+
+        if (state.User.Identity != null && !state.User.Identity.IsAuthenticated)
+        {
+            message = "Error: You need to login first";
+            return;
+        }
+
+        var result = await UserService.GetAllAsync();
+
+        if (result.IsSuccess && result.Data != null)
+        {
+            var json = JsonSerializer.Serialize(result.Data);
+            users = JsonSerializer.Deserialize<List<GetUserDto>>(json);
+        }
+    }
+
+    // todo: edit user
+
+}
