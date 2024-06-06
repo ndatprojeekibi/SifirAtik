@@ -12,7 +12,7 @@ using SifirAtik.Data.Contexts;
 namespace SifirAtik.Data.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20240527215003_Initialize")]
+    [Migration("20240606103831_Initialize")]
     partial class Initialize
     {
         /// <inheritdoc />

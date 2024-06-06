@@ -4,6 +4,7 @@
 
 @inject IItemService ItemService
 @inject IRequestService RequestService
+@inject IUserService UserService
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager NavigationManager
 
@@ -35,6 +36,9 @@
                 <label for="location" class="form-label">Location</label>
                 @* <ValidationMessage For="() => Input.Location" class="text-danger" /> *@
             </div>
+            <p>
+                <a style="color:blue; text-decoration:underline; cursor:pointer" @onclick="GetAddress">Do you want to use your address?</a>
+            </p>
             <button type="submit" class="w-100 btn btn-lg btn-primary">Donate</button>
 
         </div>
@@ -48,6 +52,11 @@
 
 
 @code {
+    [CascadingParameter]
+    public Guid userId { get; set; }
+
+    private GetUserDto user;
+
     private InputModel Input { get; set; } = new();
     private string? message;
 
@@ -104,6 +113,35 @@
                 Status = Input.Status,
                 DonationLocation = Input.Location
             };
+    }
+
+    private async Task GetAddress()
+    {
+        var result = await UserService.GetByIdAsync(userId);
+
+        if (result.IsSuccess && result.Data != null)
+        {
+            var json = JsonSerializer.Serialize(result.Data);
+            user = JsonSerializer.Deserialize<GetUserDto>(json);
+        }
+
+        if (user == null)
+        {
+            message = "Error: User not found.";
+            StateHasChanged();
+
+            return;
+        }
+
+        if (user.Address == string.Empty)
+        {
+            message = "Error: Your address is empty. Manage your settings.";
+            StateHasChanged();
+
+            return;
+        }
+
+        Input.Location = user.Address;
     }
 
     private sealed class InputModel

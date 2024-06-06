@@ -46,7 +46,7 @@ namespace SifirAtik.Services.Services
                     return new ResultItem
                     {
                         IsSuccess = false,
-                        Message = "You already have a request for this item.",
+                        Message = "You already have a request for this item or you donated it.",
                         Data = null
                     };
                 }
