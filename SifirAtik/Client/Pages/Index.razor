@@ -1,7 +1,75 @@
 ﻿@page "/"
 
-<PageTitle>Index</PageTitle>
+<PageTitle>Sıfır Atık</PageTitle>
 
-<h1>Hello, world!</h1>
+<main class="main-content">
+    <div class="container">
+        <div class="header-content">
+            <img src="logo.jpg" alt="Logo" class="logo">
+            <h1 class="title">Kamuda İhtiyaç Fazlası Ürün Sistemi</h1>
+        </div>
+        <section id="vision" class="section">
+            <h2 class="section-title">Vizyon</h2>
+            <ul class="vision-list">
+                <li><strong>Amaç:</strong> Atık oluşumunun engellenmesi amacıyla kamuda kullanılan taşınırların ihtiyaç duyulmadığında bir sistem üzerinden ilgili birimlere devrinin yapılacağı sistemi tasarlamak. Üyelik tabanlı çalışan bu sistem, kullanıcıların ihtiyaç fazlası taşınırlarını diğer kullanıcılarla paylaşmalarını ve bu taşınırları bulmalarını sağlar.<strong>Yeniden kullanım ile atık oluşumunun önlenmesi hedeflenmektedir.</strong></li>
+                <li>Sistem üyelik üzerinden çalışmaktadır.</li>
+                <li>Kullanıcılar, ihtiyaç fazlası olan taşınırlarını sistem üzerinde belirli kategorilere göre (elektronik malzemeler, mobilyalar, büro malzemeleri vb.) tanımlarlar. Bu tanımlama işlemi, taşınırın boyutları, teknik özellikleri, durumu ve hatta fotoğrafları gibi detaylı bilgilerle desteklenir. Örneğin Personelin kullanmadığı masası var bunu atmak yerine masasını bu sisteme yükleyecek, ihtiyacı olan diğer personeller satın almadan önce depolarda işlerini görecek bir taşınır varsa bu taşınırı kullanabilecekler.</li>
+                <li>Kullanıcı taşınırın özelliklerini girecek. En, boy, yükseklik, genişlik, ağırlık vb. Taşınırın resimlerini yükleyecek. Varsa teknik özelliklerini ya da durumunu(ekranda çizikleri var, sandalyenin sırt dayama yerinde vidası düşmüş vb.)</li>
+                <li>Sistem, depolardaki alanın verimli bir şekilde kullanılmasını sağlamak için akıllı bir depo yönetim sistemine sahiptir. Depolarda bulunan taşınırların konumları ve kullanılabilir alan sürekli olarak güncellenir. Kullanılmayan taşınırlar belirli bir süre sonra depodan çıkarılarak diğer kullanıcılara veya geri dönüşüm sürecine yönlendirilir.</li>
+                <li>Sisteme yeni bir taşınır eklendiğinde, sistem nakliye personeline taşınırın bulunduğu yerden alınıp depoya götürmesi için bildirim gönderir.</li>
+                <li>Kullanıcının, talep ettiği kategorideki ürün depoda bulunmadığında, kullanıcı ürünün stok durumu ile ilgili bildirimleri aktifleştirir.</li>
+                <li>Sisteme yeni bir ürün eklendiğinde o ürüne ihtiyacı olan kullanıcılara sistem bildirim gönderir.</li>
+                <li>Sistem, depoda belirli bir süre durup da talep görmeyen malzemeler belirli bir süre sonunda geri dönüşüme gönderir.</li>
+            </ul>
+        </section>
+    </div>
+</main>
 
-Welcome to your new app.
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+    }
+
+    .main-content {
+        padding: 20px;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: auto;
+        background-color: white;
+        padding: 20px;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .header-content {
+        background-color: #004080;
+        color: white;
+        padding: 15px;
+        text-align: center;
+        margin-bottom: 20px;
+        border-radius: 5px;
+    }
+
+    .section {
+        margin-bottom: 20px;
+    }
+
+    .section-title {
+        color: #004080;
+    }
+
+    .vision-list {
+        list-style-type: disc;
+        padding-left: 20px;
+    }
+
+    .logo {
+        height: 80px;
+        vertical-align: middle;
+    }
+</style>

@@ -79,3 +79,17 @@ main {
         padding-right: 1.5rem !important;
     }
 }
+
+.footer {
+    text-align: center;
+    padding: 20px;
+    background-color: #004080;
+    color: white;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+}
+
+.title {
+    margin: 0;
+}
